@@ -17,4 +17,3 @@ const SHA256 = require('crypto-js/sha256');
 <a href='https://nodejs.org/en/'>NodeJs<a> as server side language <br>
 <a href='https://www.blockchain.com/'>BlockChain</a> 
  <a href='http://leveldb.org/'>Level<a>
-### Project structure
