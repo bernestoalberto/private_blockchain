@@ -5,30 +5,37 @@
  */
 
 const SHA256 = require('crypto-js/sha256');
-const level = require('./leveldbSandBox');
-
-}
+const level = require('./leveldb');
+let Block = require('./block');
 
 class BlockChain{
     constructor(){
         this.chain=[];
-       this.getBlockHeight().then((value)=>{
-        if(value.length == 0){
-            this.addBlock(new Block("First block in the chain - Genesis block"))
+        // let Block = new Block();
+       this.getBlockHeight().then((counter)=>{
+        if(counter == 0){
+            
+            this.addBlock(this.createGenesisBlock());
     }
         else{
-            console.log(`BlockChain long is ${value.length} block(s)`);
+            console.log(`BlockChain long is ${counter} block(s)`);
         }
        }).catch((error)=>{console.log(error)});
        
     }
+    
  /**
    * @function createGenesisBlock
    *@description Create the Genesis Block of the BlockChain
-   * @returns {void}
+   * @returns {Block}
    */
     createGenesisBlock(){
-        return new Block("First block in the chain - Genesis block");
+        let newBlock = new Block("First block in the chain - Genesis block");
+        newBlock.height = 0;
+        newBlock.previousblockHash = "";
+        newBlock.time = new Date().getTime().toString().slice(0,-3);
+        newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+        return newBlock;
       }
  /**
    * @function getLatestBlock
@@ -36,9 +43,9 @@ class BlockChain{
    * @returns {Integer} The last block index
    */
       getLatestBlock(){
-        this.getBlockHeight().then((value)=>{
+        this.getAllBlocks().then((value)=>{
             if(value.length == 0){
-                this.addBlock(new Block("First block in the chain - Genesis block"))
+                this.addBlock(this.createGenesisBlock());
         }         
             if(value.length > 2){
             
@@ -58,7 +65,7 @@ class BlockChain{
    */
     addBlock(newBlock){
         return new Promise((resolve, reject)=>{
-            this.getBlockHeight().then((blockchain)=>{
+            level.getAllBlocks().then((blockchain)=>{
             if(blockchain.length > 0){
                 newBlock.previousblockHash = JSON.parse(blockchain[blockchain.length-1].value).hash;
                 newBlock.height = blockchain.length;
@@ -81,6 +88,7 @@ class BlockChain{
         })
         .catch((error)=>{
          console.log(error);
+         process.exit(1);
         });
         });
  
@@ -116,9 +124,9 @@ class BlockChain{
 
     getBlockHeight(){
         return new Promise((resolve,reject)=>{
-        level.getAllBlocks(). then((blockchain)=>{
+        level.countBlocks().then((blockcounter)=>{
             // this.printBlockChain(blockchain);
-            resolve(blockchain);
+            resolve(blockcounter);
         }).
         catch((error)=>{
             console.log(error);
@@ -140,14 +148,7 @@ class BlockChain{
         return new Promise((resolve,reject)=>{
      level.getLevelDBData(blockHeight).then((block)=>{
          //validate block validateBlock
-         let blockJson = '';
-          if(blockHeight != 0){
-            blockJson = JSON.parse(block);
-          }
-          else{
-            blockJson= block;
-          };
-         console.log(`Hash:${blockJson.hash} => blockHeight: ${blockHeight}`);
+         console.log(`Hash:${block.hash} => blockHeight: ${blockHeight}`);
          resolve(block);
      })
      .catch((error)=>{
@@ -187,7 +188,7 @@ class BlockChain{
        resolve(true);
      } else {
        console.log(`Block # ${blockHeight} invalid hash:\n ${jsobject.hash} <> ${validBlockHash}`);    
-       reject(Error(false));
+       resolve(false);
      }
     }).catch((error)=>{
         console.log(error);
@@ -204,32 +205,38 @@ class BlockChain{
  * @version 0.1
  */
 
-    validateAllBlocks(){
-        return new Promise((resolve,reject)=>{
-          level.getAllBlocks().then((chains)=>{ 
-        for (let i= 1;i < chains.length;i++) {
-            // validate block
-           this.validateBlock(chains[i].key).then((value,error)=>{
-               let errorLog = [];
-            if(value==false)errorLog.push(i);
-                if(errorLog.length>0) {
-                    console.log(`Block errors =  ${errorLog.length}`);
-                    console.log(`Blocks: ${errorLog}`);
-                    reject(errorLog);
-                  } else {
-                    console.log(`No errors detected`);
-                    resolve(true)
-                  }
-     
-            // compare blocks hash link
-            let blockHash = chains[i].hash;
-            let previousHash = (chains[i+1])? JSON.parse(chains[i+1].value).previousblockHash:'';
-            if (blockHash!==previousHash)errorLog.push(i);
-            }).catch((error)=>{
-                console.log(error);
-                reject(error);
-            });
-          } 
+   validateAllBlocks(){
+        return new Promise( async (resolve,reject)=>{
+        let errorLog = [];
+        let i =1;
+        level.getAllBlocks().then((chains)=>{
+        chains.forEach((current)=>{
+           if (current.key != "0"){
+            blockchain.validateBlock(current.key).then((result)=>{
+                if (!(result))errorLog.push(i);  
+                 // compare blocks hash link
+                     let blockHash = chains[i].hash;
+                     let previousHash = (chains[i+1])? JSON.parse(chains[i+1].value).previousblockHash:'';
+                     if (blockHash!==previousHash)errorLog.push(i);
+                      i++;
+                 }).
+                 catch((error)=>{
+                     console.log(error);
+                     }); 
+                    }
+        });
+                 
+           if(errorLog.length>0) {
+            console.log(`Block errors =  ${errorLog.length}`);
+            console.log(`Blocks: ${errorLog}`);
+            reject(errorLog);
+          } else {
+            console.log(`No errors detected. BlockChain Valid`);
+            resolve(true)
+          }
+        }).
+        catch((error)=>{
+        console.log(error);
         });
         });
     }
@@ -257,7 +264,7 @@ class BlockChain{
 let blockchain = new BlockChain();
 console.log(`blockchain.chain`);
 blockchain.validateChain();
-// blockchain.getBlockHeight();
+blockchain.getBlockHeight();
 // blockchain.validateBlock(1);
 // blockchain.printBlockChain();
 // blockchain.addBlock(new Block(`Block Vincero`));
