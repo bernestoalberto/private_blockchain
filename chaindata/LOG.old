@@ -1,3 +1,5 @@
-2018/12/08-22:59:15.364 59a8 Recovering log #74
-2018/12/08-22:59:15.471 59a8 Delete type=0 #74
-2018/12/08-22:59:15.471 59a8 Delete type=3 #73
+2018/12/09-00:19:50.311 db0 Recovering log #65
+2018/12/09-00:19:50.311 db0 Level-0 table #67: started
+2018/12/09-00:19:50.440 db0 Level-0 table #67: 1301 bytes OK
+2018/12/09-00:19:50.537 db0 Delete type=0 #65
+2018/12/09-00:19:50.537 db0 Delete type=3 #64
